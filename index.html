@@ -220,42 +220,42 @@
 
         // ===== ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ =====
         function goToSounds() {
-            const start = document.getElementById('startScreen');
-            const btn = document.querySelector('.start-btn');        
-            const overlay = document.getElementById('fadeOverlay');
-            const soundScreen = document.getElementById('soundScreen');
+    const start = document.getElementById('startScreen');
+    const btn = document.querySelector('.start-btn');
+    const overlay = document.getElementById('fadeOverlay');
+    const soundScreen = document.getElementById('soundScreen');
 
-            // Вспышка кнопки
-            btn.classList.add('flash');
+    // Вспышка кнопки
+    btn.classList.add('flash');
 
-            // Вибрация
-            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
-                window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
-            }
+    // Вибрация
+    if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
+    }
 
-            // Через 250 мс (после вспышки) — затемняем
+    // Через 250 мс (после вспышки) — затемняем
+    setTimeout(() => {
+        overlay.classList.add('show');
+
+        // Пока темно — меняем экраны
+        setTimeout(() => {
+            start.classList.remove('active');
+            start.classList.add('exit');
+
+            // Сбрасываем и запускаем анимацию входа заново
+            soundScreen.classList.remove('enter');
+            void soundScreen.offsetWidth; // форсируем перерисовку
+            soundScreen.classList.add('active', 'enter');
+
+            // Убираем затемнение
             setTimeout(() => {
-                overlay.classList.add('show');
-
-                // Пока темно — меняем экраны
-                setTimeout(() => {
-                    start.classList.remove('active');
-                    start.classList.add('exit');
-
-                    // Сбрасываем и запускаем анимацию входа заново
-                    soundScreen.classList.remove('enter');
-                    void soundScreen.offsetWidth; // форсируем перерисовку
-                    soundScreen.classList.add('active', 'enter');
-
-                    // Убираем затемнение
-                    setTimeout(() => {
-                        overlay.classList.remove('show');
-                        start.classList.remove('exit');
-                        btn.classList.remove('flash');
-                    }, 100);
-                }, 400);
-            }, 250);
-        }
+                overlay.classList.remove('show');
+                start.classList.remove('exit');
+                btn.classList.remove('flash');
+            }, 100);
+        }, 400);
+    }, 250);
+}
 
         function goToStart() {
             stop();
