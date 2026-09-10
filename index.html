@@ -8,7 +8,8 @@
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            background: #1a1a1a;
+            background: url('background.jpg')
+        center/cover no-repeat fixed;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -38,11 +39,11 @@
     </style>
 </head>
 <body>
-    <button onclick="play('kryakalka.mp3')">🚨 Крякалка</button>
-    <button onclick="play('sirena.mp3')">🚔 Сирена</button>
-    <button onclick="play('wail.mp3')">⚠️ Wail</button>
-    <button onclick="stop()">⏹ Стоп</button>
-
+    <button onclick="play('nikita.mp3')">ооой</button>
+    <button onclick="play('fly.mp3')">зузузу</button>
+    <button onclick="play('toplivo.mp3')">ключики на стенку</button>
+    <button onclick="stop()">стоп</button>
+    
     <script>
         // Инициализация Telegram WebApp (работает, даже если открыть просто в браузере)
         if (window.Telegram && window.Telegram.WebApp) {
