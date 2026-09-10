@@ -4,50 +4,115 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>СГУ</title>
-    <!-- Подключаем Telegram WebApp API -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            background: url('background.jpg')
-        center/cover no-repeat fixed;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            gap: 15px;
-            font-family: sans-serif;
-            padding: 20px;
+        * {
             box-sizing: border-box;
         }
-        button {
-            font-size: 20px;
+
+        body {
+            background: url('background.jpg') center/cover no-repeat fixed;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            font-family: sans-serif;
+            overflow: hidden;
+        }
+
+        /* Экраны */
+        .screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            height: 100vh;
+            padding: 30px;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        /* Стартовая картинка-кнопка */
+        .start-btn {
+            width: 200px;
+            height: auto;
+            cursor: pointer;
+            transition: transform 0.1s;
+            filter: drop-shadow(0 4px 15px rgba(0,0,0,0.8));
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            margin-bottom: 40px;
+        }
+
+        .start-btn:active {
+            transform: scale(0.9);
+        }
+
+        /* Основной экран — кнопки со звуками */
+        .sound-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 320px;
+            margin-bottom: 30px;
+        }
+
+        .sound-btn {
+            font-size: 22px;
             padding: 20px;
-            border-radius: 12px;
-            border: 1px solid rgba(255, 255, 255, 0.5)ж
-            background: rgba(230, 57, 70, 0.5);
+            border-radius: 14px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            background: rgba(230, 57, 70, 0.55);
             color: #fff;
             cursor: pointer;
-            width: 100%;
-            max-width: 300px;
             backdrop-filter: blur(5px);
             text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+            font-weight: bold;
         }
-        button:active {
-            background: #b71c2b;
+
+        .sound-btn:active {
+            background: rgba(183, 28, 43, 0.85);
             transform: scale(0.98);
+        }
+
+        /* Кнопка "Назад" */
+        .back-btn {
+            font-size: 16px;
+            padding: 12px 30px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            background: rgba(0, 0, 0, 0.4);
+            color: #fff;
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+
+        .back-btn:active {
+            background: rgba(0, 0, 0, 0.7);
         }
     </style>
 </head>
 <body>
-    <button onclick="play('nikita.mp3')">ооой</button>
-    <button onclick="play('fly.mp3')">зузузу</button>
-    <button onclick="play('toplivo.mp3')">ключики на стенку</button>
-    <button onclick="stop()">стоп</button>
-    
+
+    <!-- СТАРТОВЫЙ ЭКРАН -->
+    <div class="screen active" id="startScreen">
+        <img src="button.png" class="start-btn" onclick="goToSounds()" alt="Старт">
+    </div>
+
+    <!-- ОСНОВНОЙ ЭКРАН СО ЗВУКАМИ -->
+    <div class="screen" id="soundScreen">
+        <div class="sound-buttons">
+            <button class="sound-btn" onclick="play('nikita.mp3')">Никита</button>
+            <button class="sound-btn" onclick="play('fly.mp3')">Fly</button>
+            <button class="sound-btn" onclick="play('toplivo.mp3')">Топливо</button>
+            <button class="sound-btn" onclick="play('klyuchiki.mp3')">Ключики на стенку</button>
+        </div>
+        <button class="back-btn" onclick="goToStart()">← Назад</button>
+    </div>
+
     <script>
-        // Инициализация Telegram WebApp (работает, даже если открыть просто в браузере)
         if (window.Telegram && window.Telegram.WebApp) {
             window.Telegram.WebApp.ready();
             window.Telegram.WebApp.expand();
@@ -55,15 +120,36 @@
 
         let audio = null;
 
-        function play(file) {
-            stop(); // Останавливаем предыдущий звук
-            audio = new Audio(file);
-            audio.loop = true; // Зацикливаем, чтобы играло постоянно
-            audio.play().catch(e => console.log("Ошибка воспроизведения:", e));
-
-            // Вибрация в Telegram (если доступно)
+        // Переключение экранов
+        function goToSounds() {
+            document.getElementById('startScreen').classList.remove('active');
+            document.getElementById('soundScreen').classList.add('active');
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+            }
+        }
+
+        function goToStart() {
+            stop();
+            document.getElementById('soundScreen').classList.remove('active');
+            document.getElementById('startScreen').classList.add('active');}
+
+        // Воспроизведение
+        function play(file) {
+            if (audio) {
+                audio.pause();
+                audio.currentTime = 0;
+                if (audio.src.includes(file)) {
+                    audio = null;
+                    return;
+                }
+            }
+            audio = new Audio(file);
+            audio.loop = true;
+            audio.play().catch(e => console.log("Ошибка:", e));
+
+            if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+                window.Telegram.WebApp.HapticFeedback.impactOccurred('light');
             }
         }
 
