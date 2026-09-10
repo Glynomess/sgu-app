@@ -31,17 +31,42 @@
 
         .screen.active {
             display: flex;
-            animation: slideIn 0.4s ease;
         }
 
-        @keyframes slideIn {
-            from {
-                transform: translateY(100%);
+        /* Появление основного экрана с отскоком */
+        .screen.active.enter {
+            animation: slideInBounce 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        @keyframes slideInBounce {
+            0% {
+                transform: translateY(100%) scale(0.9);
                 opacity: 0;
             }
-            to {
+            60% {
+                transform: translateY(-10px) scale(1.02);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(0) scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Уход стартового экрана вверх */
+        .screen.exit {
+            display: flex;
+            animation: slideOut 0.4s ease forwards;
+        }
+
+        @keyframes slideOut {
+            from {
                 transform: translateY(0);
                 opacity: 1;
+            }
+            to {
+                transform: translateY(-100%);
+                opacity: 0;
             }
         }
 
@@ -50,7 +75,7 @@
             width: 200px;
             height: auto;
             cursor: pointer;
-            transition: transform 0.1s, filter 0.15s;
+            transition: transform 0.15s, filter 0.2s;
             filter: drop-shadow(0 4px 15px rgba(0,0,0,0.8));
             user-select: none;
             -webkit-tap-highlight-color: transparent;
@@ -63,10 +88,44 @@
             50% { transform: scale(1.08); }
         }
 
-        .start-btn:active {
-            animation: none;
-            transform: scale(0.85);
-            filter: drop-shadow(0 0 25px rgba(255, 100, 100, 1));
+        /* Вспышка при тапе */
+        .start-btn.flash {
+            animation: flash 0.5s ease;
+        }
+
+        @keyframes flash {
+            0% {
+                transform: scale(1);
+                filter: drop-shadow(0 4px 15px rgba(0,0,0,0.8));
+            }
+            30% {
+                transform: scale(1.2);
+                filter: drop-shadow(0 0 40px rgba(255, 80, 80, 1))
+                        drop-shadow(0 0 80px rgba(255, 0, 0, 0.8))
+                        brightness(1.5);
+            }
+            100% {
+                transform: scale(1);
+                filter: drop-shadow(0 4px 15px rgba(0,0,0,0.8));
+            }
+        }
+
+        /* Затемнение поверх всего */
+        .fade-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.4s ease;
+            z-index: 999;
+        }
+
+        .fade-overlay.show {
+            opacity: 1;
         }
 
         /* Основной экран — кнопки со звуками */
@@ -89,7 +148,7 @@
             cursor: pointer;
             backdrop-filter: blur(5px);
             text-shadow: 0 1px 3px rgba(0,0,0,0.8);
-            font-weight: bold;
+            font-weight:bold;
         }
 
         .sound-btn:active {
@@ -120,16 +179,19 @@
     <div class="screen active" id="startScreen">
         <img src="button.png" class="start-btn" onclick="goToSounds()" alt="Старт">
     </div>
+
     <!-- ОСНОВНОЙ ЭКРАН СО ЗВУКАМИ -->
     <div class="screen" id="soundScreen">
         <div class="sound-buttons">
             <button class="sound-btn" onclick="play('nikita.mp3')">ооой</button>
             <button class="sound-btn" onclick="play('fly.mp3')">зузузу</button>
             <button class="sound-btn" onclick="play('toplivo.mp3')">ключики на стенку</button>
-            <button class="sound-btn" onclick="play('klyuchiki.mp3')">Ключики на стенку</button>
         </div>
         <button class="back-btn" onclick="goToStart()">← Назад</button>
     </div>
+
+    <!-- Затемнение -->
+    <div class="fade-overlay" id="fadeOverlay"></div>
 
     <script>
         if (window.Telegram && window.Telegram.WebApp) {
@@ -139,33 +201,94 @@
 
         let audio = null;
 
-        // Переключение экранов
+        // ===== ПРЕДЗАГРУЗКА ЗВУКОВ =====
+        const soundsToPreload = [
+            'nikita.mp3',
+            'fly.mp3',
+            'toplivo.mp3'
+        ];
+
+        const preloadedSounds = {};
+
+        soundsToPreload.forEach(file => {
+            const a = new Audio();
+            a.preload = 'auto';
+            a.src = file;
+            a.loop = true;
+            preloadedSounds[file] = a;
+        });
+
+        // ===== ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ =====
         function goToSounds() {
-            document.getElementById('startScreen').classList.remove('active');
-            document.getElementById('soundScreen').classList.add('active');
+            const start = document.getElementById('startScreen');
+            const btn = document.querySelector('.start-btn');
+            const overlay = document.getElementById('fadeOverlay');
+            const soundScreen = document.getElementById('soundScreen');
+
+            // Вспышка кнопки
+            btn.classList.add('flash');
+
+            // Вибрация
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
                 window.Telegram.WebApp.HapticFeedback.impactOccurred('heavy');
             }
+
+            // Через 250 мс (после вспышки) — затемняем
+            setTimeout(() => {
+                overlay.classList.add('show');
+
+                // Пока темно — меняем экраны
+                setTimeout(() => {
+                    start.classList.remove('active');
+                    start.classList.add('exit');
+                    soundScreen.classList.add('active', 'enter');
+
+                    // Убираем затемнение
+                    setTimeout(() => {
+                        overlay.classList.remove('show');
+                        start.classList.remove('exit');
+                        btn.classList.remove('flash');
+                        setTimeout(() => {
+                            soundScreen.classList.remove('enter');
+                        }, 600);
+                    }, 100);
+                }, 400);
+            }, 250);
         }
 
         function goToStart() {
             stop();
-            document.getElementById('soundScreen').classList.remove('active');
-            document.getElementById('startScreen').classList.add('active');
+            const start = document.getElementById('startScreen');
+            const soundScreen = document.getElementById('soundScreen');
+            const btn = document.querySelector('.start-btn');
+
+            soundScreen.classList.remove('active');
+            start.classList.add('active');
+
+            // Перезапуск анимации пульсации
+            btn.style.animation = 'none';
+            void btn.offsetWidth;
+            btn.style.animation = 'pulse 1.5s ease-in-out infinite';
         }
 
-        // Воспроизведение
+        // ===== ВОСПРОИЗВЕДЕНИЕ =====
         function play(file) {
-            if (audio) {
-                audio.pause();
+            if (audio) {audio.pause();
                 audio.currentTime = 0;
                 if (audio.src.includes(file)) {
                     audio = null;
                     return;
                 }
             }
-            audio = new Audio(file);
-            audio.loop = true;
+
+            if (preloadedSounds[file]) {
+                audio = preloadedSounds[file];
+                audio.currentTime = 0;
+            } else {
+                audio = new Audio(file);
+                audio.loop = true;
+            }
+
             audio.play().catch(e => console.log("Ошибка:", e));
 
             if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
