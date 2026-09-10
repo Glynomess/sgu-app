@@ -35,7 +35,7 @@
 
         /* Появление основного экрана с отскоком */
         .screen.active.enter {
-            animation: slideInBounce 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+            animation: slideInBounce 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
         }
 
         @keyframes slideInBounce {
@@ -221,7 +221,7 @@
         // ===== ПЕРЕКЛЮЧЕНИЕ ЭКРАНОВ =====
         function goToSounds() {
             const start = document.getElementById('startScreen');
-            const btn = document.querySelector('.start-btn');
+            const btn = document.querySelector('.start-btn');        
             const overlay = document.getElementById('fadeOverlay');
             const soundScreen = document.getElementById('soundScreen');
 
@@ -241,6 +241,10 @@
                 setTimeout(() => {
                     start.classList.remove('active');
                     start.classList.add('exit');
+
+                    // Сбрасываем и запускаем анимацию входа заново
+                    soundScreen.classList.remove('enter');
+                    void soundScreen.offsetWidth; // форсируем перерисовку
                     soundScreen.classList.add('active', 'enter');
 
                     // Убираем затемнение
@@ -248,9 +252,6 @@
                         overlay.classList.remove('show');
                         start.classList.remove('exit');
                         btn.classList.remove('flash');
-                        setTimeout(() => {
-                            soundScreen.classList.remove('enter');
-                        }, 600);
                     }, 100);
                 }, 400);
             }, 250);
