@@ -23,6 +23,9 @@ var gravity: float = 20.0
 @export var door_aim_path: NodePath = ^"../DoorAim"
 @export var peek_anchor_path: NodePath = ^"../PeekAnchor"
 
+# Кулдаун между переключениями зон (сек)
+@export var zone_switch_cooldown: float = 0.2
+
 # Текущий режим игрока
 enum PlayerMode { WALKING, PEEKING, SEATED }
 enum SeatedZone { MONITOR, WINDOW, DOOR }
@@ -42,8 +45,7 @@ var _current_zone: SeatedZone = SeatedZone.WINDOW
 var _zone_tween: Tween
 var _feedback_text: String = ""
 var _feedback_time: float = 0.0
-# Флаг: ждём, пока курсор вернётся из края в центр экрана
-var _waiting_for_center: bool = false
+var _zone_switch_timer: float = 0.0
 
 @onready var camera: Camera3D = $Camera3D
 @onready var seat_anchor: Marker3D = get_node(seat_anchor_path)
@@ -113,7 +115,7 @@ func _process(delta: float) -> void:
 			_leave_peek()
 
 	if mode == PlayerMode.SEATED:
-		_update_seated_zone()
+		_update_seated_zone(delta)
 
 	_update_hint()
 
@@ -164,7 +166,7 @@ func _enter_seat() -> void:
 	global_rotation.y = seat_anchor.global_rotation.y
 	camera.position.y = seat_camera_height
 	_current_zone = SeatedZone.WINDOW
-	_waiting_for_center = false
+	_zone_switch_timer = 0.0
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	Input.warp_mouse(get_viewport().get_visible_rect().size * 0.5)
 	_aim_at_current_zone(true)
@@ -177,7 +179,7 @@ func _exit_seat() -> void:
 	camera.rotation = _walking_camera_rotation
 	mode = PlayerMode.WALKING
 	velocity = Vector3.ZERO
-	_waiting_for_center = false
+	_zone_switch_timer = 0.0
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 	_set_feedback("Ты встал с кресла.")
 
@@ -232,32 +234,27 @@ func _is_looking_at_door() -> bool:
 	var result: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
 	return not result.is_empty() and result.get("collider") == door
 
-func _update_seated_zone() -> void:
+func _update_seated_zone(delta: float) -> void:
+	# Тикаем кулдаун
+	if _zone_switch_timer > 0.0:
+		_zone_switch_timer = maxf(0.0, _zone_switch_timer - delta)
+		return  # пока идёт кулдаун — вообще ничего не проверяем
+
 	var viewport_width: float = get_viewport().get_visible_rect().size.x
 	var edge_width: float = clampf(viewport_width * 0.05, 32.0, 80.0)
 	var mouse_x: float = get_viewport().get_mouse_position().x
 
 	var at_left_edge: bool = mouse_x <= edge_width
 	var at_right_edge: bool = mouse_x >= viewport_width - edge_width
-	var at_edge: bool = at_left_edge or at_right_edge
 
-	# Если ждём возврата в центр — проверяем, вернулся ли курсор
-	if _waiting_for_center:
-		if not at_edge:
-			_waiting_for_center = false
-		return  # пока в центре — ничего не делаем
+	if not (at_left_edge or at_right_edge):
+		return  # курсор не в краю — ничего не делаем
 
-	# Если курсор не у края — ничего не делаем
-	if not at_edge:
-		return
-
-	# Курсор у края — пробуем переключить зону
 	var next_zone: SeatedZone = _zone_from_mouse_x(mouse_x)
 	if next_zone != _current_zone:
 		_current_zone = next_zone
 		_aim_at_current_zone()
-		# Теперь ждём, пока игрок уберёт мышь от края
-		_waiting_for_center = true
+		_zone_switch_timer = zone_switch_cooldown
 
 func _zone_from_mouse_x(mouse_x: float) -> SeatedZone:
 	var viewport_width: float = get_viewport().get_visible_rect().size.x
