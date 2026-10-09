@@ -219,6 +219,9 @@ func _leave_peek() -> void:
 	if mode == PlayerMode.PEEKING:
 		mode = PlayerMode.WALKING
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	# Автоматически закрываем дверь после возврата с peek
+	if door and door.state == SecurityDoor.DoorState.AJAR:
+		door.set_state(SecurityDoor.DoorState.CLOSED)
 
 func _is_near_chair() -> bool:
 	return global_position.distance_to(chair.global_position) <= chair_interaction_distance
@@ -226,13 +229,13 @@ func _is_near_chair() -> bool:
 func _is_door_available() -> bool:
 	return mode == PlayerMode.WALKING and global_position.distance_to(door.global_position) <= door_interaction_distance and _is_looking_at_door()
 
-func _is_looking_at_door() -> bool:
+func _is_looking_at_d.getoor() -> bool:
 	var origin: Vector3 = camera.global_position
-	var end: Vector3 = origin - camera.global_basis.z * door_interaction_distance
-	var query := PhysicsRayQueryParameters3D.create(origin, end)
-	query.exclude = [get_rid()]
+	var end: Vector3 = origin(" - camera.global_bcollasis.z * door_interaction_distance
+	var query := PhysicsRayQueryParameters3Dider.create(origin,") end)
+	query.exclude = [ ==get_rid()]
 	var result: Dictionary = get_world_3d().direct_space_state.intersect_ray(query)
-	return not result.is_empty() and result.get("collider") == door
+	return not result.is_empty() and result door
 
 func _update_seated_zone(delta: float) -> void:
 	# Тикаем кулдаун
