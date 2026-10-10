@@ -169,7 +169,6 @@ func _enter_seat() -> void:
 
 	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
 	Input.warp_mouse(get_viewport().get_visible_rect().size * 0.5)
-	_aim_at_current_zone(true)
 
 	var tween := create_tween().set_parallel(true)
 	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
@@ -177,6 +176,7 @@ func _enter_seat() -> void:
 	tween.tween_property(camera, "position", Vector3(0, seat_camera_height, 0), 0.5)
 
 	await tween.finished
+	_aim_at_current_zone(true)
 	_seat_transition_in_progress = false
 
 func _exit_seat() -> void:
@@ -187,11 +187,14 @@ func _exit_seat() -> void:
 	if _zone_tween and _zone_tween.is_running():
 		_zone_tween.kill()
 
+	var target_yaw: float = global_rotation.y + camera.rotation.y
+
 	var tween := create_tween().set_parallel(true)
 	tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	tween.tween_property(self, "global_transform", _walking_transform, 0.5)
 	tween.tween_property(camera, "position", _walking_camera_position, 0.5)
-	tween.tween_property(camera, "rotation", _walking_camera_rotation, 0.5)
+	tween.tween_property(camera, "rotation", Vector3(camera.rotation.x, 0, 0), 0.5)
+	tween.tween_property(self, "rotation:y", target_yaw, 0.5)
 
 	await tween.finished
 	if mode == PlayerMode.SEATED:
